@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Solicitação de Compras</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #F2F1ED;
+      --surface:   #FFFFFF;
+      --surface2:  #F8F7F5;
+      --border:    #E2DFD8;
+      --border2:   #C8C3BA;
+      --text:      #18171A;
+      --muted:     #6A6760;
+      --accent:    #1D4ED8;
+      --accent-lt: #EEF2FF;
+      --accent-dk: #1338A8;
+      --danger:    #B91C1C;
+      --danger-lt: #FEF2F2;
+      --success:   #15803D;
+      --success-lt:#F0FDF4;
+      --warn:      #92400E;
+      --warn-lt:   #FFFBEB;
+      --radius:    9px;
+      --radius-lg: 13px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2.5rem 1rem 5rem;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .wrap { max-width: 760px; margin: 0 auto; }
+
+    /* PAGE HEADER */
+    .page-header {
+      display: flex; align-items: flex-start; gap: 14px;
+      margin-bottom: 2rem;
+    }
+    .page-icon {
+      width: 46px; height: 46px; border-radius: 11px;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .page-icon svg { width: 24px; height: 24px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .page-header h1 { font-size: 21px; font-weight: 600; letter-spacing: -.3px; line-height: 1.2; margin-bottom: 4px; }
+    .page-header p  { font-size: 13px; color: var(--muted); line-height: 1.55; }
+
+    /* CARD */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.4rem 1.5rem;
+      margin-bottom: 1.1rem;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .card-title {
+      font-size: 10.5px; font-weight: 600;
+      letter-spacing: .09em; text-transform: uppercase;
+      color: var(--muted);
+      display: flex; align-items: center; gap: 6px;
+      padding-bottom: 10px; margin-bottom: 1.1rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .card-title svg { width: 13px; height: 13px; stroke: var(--muted); fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+    /* GRID */
+    .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 13px; }
+    .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 13px; }
+    .full { grid-column: 1 / -1; }
+    @media (max-width: 560px) {
+      .g2, .g3 { grid-template-columns: 1fr; }
+      .full { grid-column: 1; }
+    }
+
+    /* FIELDS */
+    .field { display: flex; flex-direction: column; gap: 5px; }
+    .field label { font-size: 12px; font-weight: 500; color: var(--muted); }
+    .req { color: var(--danger); margin-left: 1px; }
+    .field input,
+    .field select,
+    .field textarea {
+      border: 1px solid var(--border2);
+      border-radius: var(--radius);
+      padding: 9px 11px;
+      font-size: 14px;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      background: var(--surface);
+      transition: border-color .14s, box-shadow .14s;
+      width: 100%;
+      appearance: auto;
+    }
+    .field input:hover, .field select:hover, .field textarea:hover { border-color: #9A9690; }
+    .field input:focus, .field select:focus, .field textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(29,78,216,.12);
+    }
+    .field input.err, .field select.err, .field textarea.err {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 3px rgba(185,28,28,.1);
+    }
+    .field textarea { resize: vertical; min-height: 78px; line-height: 1.5; }
+    .field input[type="number"] { -moz-appearance: textfield; }
+    .field input[type="number"]::-webkit-outer-spin-button,
+    .field input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+    /* WEBHOOK BANNER */
+    .hook-card {
+      background: var(--warn-lt);
+      border: 1px solid #FCD34D;
+      border-radius: var(--radius-lg);
+      padding: 1.1rem 1.4rem;
+      margin-bottom: 1.1rem;
+    }
+    .hook-label { font-size: 11.5px; font-weight: 600; color: var(--warn); margin-bottom: 7px; display: flex; align-items: center; gap: 5px; }
+    .hook-row { display: flex; gap: 7px; }
+    .hook-row input {
+      flex: 1;
+      border: 1px solid #FCD34D;
+      border-radius: var(--radius);
+      padding: 8px 11px;
+      font-size: 12.5px;
+      font-family: 'DM Mono', monospace;
+      background: #fff;
+      color: var(--text);
+    }
+    .hook-row input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(29,78,216,.1); }
+    .btn-test {
+      border: 1px solid var(--border2);
+      background: #fff;
+      border-radius: var(--radius);
+      padding: 8px 13px;
+      font-size: 12px;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer; color: var(--text);
+      white-space: nowrap; font-weight: 500;
+      transition: background .13s;
+    }
+    .btn-test:hover { background: var(--surface2); }
+    .hook-status { font-size: 11.5px; margin-top: 7px; color: var(--muted); min-height: 16px; }
+    .hook-status.ok   { color: var(--success); font-weight: 500; }
+    .hook-status.fail { color: var(--danger); font-weight: 500; }
+
+    /* ITEM CARD */
+    .item-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin-bottom: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+      animation: slideIn .2s ease;
+    }
+    @keyframes slideIn { from { opacity:0; transform: translateY(8px); } to { opacity:1; transform: none; } }
+
+    .item-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .7rem 1.2rem;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    .item-badge {
+      font-size: 11px; font-weight: 600; letter-spacing: .05em;
+      background: var(--accent-lt); color: var(--accent);
+      border-radius: 20px; padding: 3px 10px;
+    }
+    .btn-remove {
+      width: 26px; height: 26px; border-radius: 6px;
+      background: none; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 18px; line-height: 1;
+      transition: background .13s, color .13s;
+    }
+    .btn-remove:hover { background: var(--danger-lt); color: var(--danger); }
+
+    .item-body { padding: 1.2rem 1.3rem; display: flex; flex-direction: column; gap: 13px; }
+
+    .item-foot {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: .65rem 1.3rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface2);
+      font-size: 12.5px;
+    }
+    .item-foot span:first-child { color: var(--muted); }
+    .item-total-val { font-size: 14.5px; font-weight: 600; color: var(--text); }
+
+    /* URGENCY PILLS */
+    .pill-group { display: flex; gap: 7px; flex-wrap: wrap; }
+    .pill {
+      padding: 6px 14px; border-radius: 20px; font-size: 12.5px; font-weight: 500;
+      border: 1px solid var(--border2); cursor: pointer; background: var(--surface);
+      color: var(--muted); transition: all .13s; user-select: none;
+    }
+    .pill:hover { border-color: #9A9690; color: var(--text); }
+    .pill.active-normal { background: #EEF2FF; border-color: var(--accent); color: var(--accent); }
+    .pill.active-alta   { background: #FFFBEB; border-color: #D97706; color: #92400E; }
+    .pill.active-urgente{ background: var(--danger-lt); border-color: var(--danger); color: var(--danger); }
+
+    /* ADD ITEM BTN */
+    .btn-add {
+      width: 100%; display: flex; align-items: center; justify-content: center; gap: 7px;
+      border: 1.5px dashed var(--border2); background: none;
+      border-radius: var(--radius-lg); padding: 12px;
+      font-size: 13.5px; font-family: 'DM Sans', sans-serif;
+      cursor: pointer; color: var(--accent); font-weight: 500;
+      transition: background .13s, border-color .13s;
+      margin-bottom: 1.3rem;
+    }
+    .btn-add:hover { background: var(--accent-lt); border-color: var(--accent); }
+    .btn-add-icon { font-size: 20px; line-height: 1; }
+
+    /* GRAND TOTAL */
+    .grand-total {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1rem 1.4rem;
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.3rem;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .grand-total .gt-label { font-size: 13px; color: var(--muted); font-weight: 500; }
+    .grand-total .gt-value { font-size: 22px; font-weight: 600; color: var(--text); letter-spacing: -.3px; font-variant-numeric: tabular-nums; }
+
+    /* SUBMIT */
+    .btn-submit {
+      width: 100%; padding: 13px;
+      border: none; border-radius: var(--radius-lg);
+      background: var(--accent); color: #fff;
+      font-size: 15px; font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer; letter-spacing: -.1px;
+      transition: background .15s, transform .1s;
+    }
+    .btn-submit:hover:not(:disabled) { background: var(--accent-dk); }
+    .btn-submit:active:not(:disabled) { transform: scale(.99); }
+    .btn-submit:disabled { background: var(--border2); cursor: not-allowed; color: var(--muted); }
+
+    /* TOAST */
+    .toast {
+      position: fixed; bottom: 24px; left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--text); color: #fff;
+      border-radius: var(--radius-lg);
+      padding: 12px 20px; font-size: 13.5px; font-weight: 500;
+      white-space: nowrap; pointer-events: none;
+      opacity: 0; transition: opacity .2s, transform .2s;
+      z-index: 999;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    .toast.success { background: var(--success); }
+    .toast.error   { background: var(--danger); }
+
+    /* EMPTY STATE */
+    .empty-state {
+      text-align: center; padding: 2rem 1rem;
+      color: var(--muted); font-size: 13px;
+      border: 1.5px dashed var(--border2);
+      border-radius: var(--radius-lg);
+      margin-bottom: 10px;
+    }
+    .empty-state p { margin-top: 6px; }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div class="page-icon">
+      <svg viewBox="0 0 24 24"><path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 01-8 0"/></svg>
+    </div>
+    <div>
+      <h1>Solicitação de Compras</h1>
+      <p>Preencha o formulário abaixo. Os itens serão criados automaticamente no Monday.com.</p>
+    </div>
+  </div>
+
+  <!-- WEBHOOK CONFIG -->
+  <div class="hook-card">
+    <div class="hook-label">
+      <svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:#92400E;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      Configuração do administrador — URL do webhook (Make)
+    </div>
+    <div class="hook-row">
+      <input type="url" id="webhookUrl" placeholder="https://hook.us1.make.com/xxxxxxxxxxxxxxxxxxxxxxxx" />
+      <button class="btn-test" onclick="testWebhook()">Testar</button>
+    </div>
+    <div class="hook-status" id="hookStatus">Cole a URL do webhook gerada no Make acima para ativar o envio.</div>
+  </div>
+
+  <!-- SOLICITANTE -->
+  <div class="card">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Dados do solicitante
+    </div>
+    <div class="g2" style="gap:13px;">
+      <div class="field">
+        <label>Nome completo <span class="req">*</span></label>
+        <input type="text" id="solicitante" placeholder="Ex: Maria Silva" />
+      </div>
+      <div class="field">
+        <label>E-mail <span class="req">*</span></label>
+        <input type="email" id="email" placeholder="maria@empresa.com.br" />
+      </div>
+      <div class="field">
+        <label>Departamento <span class="req">*</span></label>
+        <select id="departamento">
+          <option value="">Selecione...</option>
+          <option>Administrativo</option>
+          <option>Comercial</option>
+          <option>Engenharia</option>
+          <option>Financeiro</option>
+          <option>Logística</option>
+          <option>Marketing</option>
+          <option>Operações</option>
+          <option>Produção</option>
+          <option>RH</option>
+          <option>TI</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Centro de custo</label>
+        <input type="text" id="centroCusto" placeholder="Ex: CC-0042" />
+      </div>
+      <div class="field">
+        <label>Data de necessidade <span class="req">*</span></label>
+        <input type="date" id="dataNecessidade" />
+      </div>
+      <div class="field full">
+        <label>Justificativa da compra</label>
+        <textarea id="justificativa" placeholder="Descreva o motivo da solicitação, contexto ou projeto relacionado..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- ITEMS -->
+  <div class="card" style="padding-bottom:.8rem;">
+    <div class="card-title">
+      <svg viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+      Itens solicitados
+    </div>
+
+    <div id="itemsContainer">
+      <div class="empty-state" id="emptyState">
+        <div style="font-size:28px;">📦</div>
+        <p>Nenhum item adicionado. Clique em "Adicionar item" abaixo.</p>
+      </div>
+    </div>
+
+    <button class="btn-add" onclick="addItem()">
+      <span class="btn-add-icon">+</span> Adicionar item
+    </button>
+
+    <!-- GRAND TOTAL -->
+    <div class="grand-total">
+      <span class="gt-label">Total geral estimado</span>
+      <span class="gt-value" id="grandTotal">R$ 0,00</span>
+    </div>
+
+    <button class="btn-submit" id="submitBtn" onclick="submitForm()">
+      Enviar solicitação →
+    </button>
+  </div>
+
+</div><!-- /wrap -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── State ──────────────────────────────────────────────
+  let itemCount = 0;
+  const items = {}; // { id: { qty, price, urgency } }
+
+  // ── Add / Remove item ──────────────────────────────────
+  function addItem() {
+    itemCount++;
+    const id = itemCount;
+    items[id] = { qty: 1, price: 0, urgency: 'Normal' };
+
+    document.getElementById('emptyState')?.remove();
+
+    const card = document.createElement('div');
+    card.className = 'item-card';
+    card.id = 'item-' + id;
+    card.innerHTML = `
+      <div class="item-head">
+        <span class="item-badge">ITEM #${id}</span>
+        <button class="btn-remove" onclick="removeItem(${id})" title="Remover item">×</button>
+      </div>
+      <div class="item-body">
+        <div class="g2">
+          <div class="field full">
+            <label>Descrição do item <span class="req">*</span></label>
+            <input type="text" id="desc-${id}" placeholder="Ex: Notebook Dell Inspiron 15, 16GB RAM, SSD 512GB" />
+          </div>
+          <div class="field">
+            <label>Categoria</label>
+            <select id="cat-${id}">
+              <option value="">Selecione...</option>
+              <option>Equipamento de TI</option>
+              <option>Material de escritório</option>
+              <option>Serviço / Mão de obra</option>
+              <option>Software / Licença</option>
+              <option>Mobiliário</option>
+              <option>EPI / Segurança</option>
+              <option>Limpeza / Higiene</option>
+              <option>Manutenção</option>
+              <option>Outros</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Fornecedor sugerido</label>
+            <input type="text" id="supplier-${id}" placeholder="Ex: Kabum, Amazon, local..." />
+          </div>
+          <div class="field">
+            <label>Quantidade <span class="req">*</span></label>
+            <input type="number" id="qty-${id}" value="1" min="1" oninput="calcItem(${id})" />
+          </div>
+          <div class="field">
+            <label>Valor unitário estimado (R$)</label>
+            <input type="number" id="price-${id}" placeholder="0,00" min="0" step="0.01" oninput="calcItem(${id})" />
+          </div>
+          <div class="field full">
+            <label>Urgência</label>
+            <div class="pill-group" id="pills-${id}">
+              <span class="pill active-normal" onclick="setPriority(${id},'Normal',this)">Normal</span>
+              <span class="pill" onclick="setPriority(${id},'Alta',this)">Alta</span>
+              <span class="pill" onclick="setPriority(${id},'Urgente',this)">Urgente</span>
+            </div>
+          </div>
+          <div class="field full">
+            <label>Observações / Especificações</label>
+            <input type="text" id="obs-${id}" placeholder="Cor, modelo exato, link de referência, etc." />
+          </div>
+        </div>
+      </div>
+      <div class="item-foot">
+        <span>Total estimado deste item</span>
+        <span class="item-total-val" id="total-${id}">R$ 0,00</span>
+      </div>
+    `;
+    document.getElementById('itemsContainer').appendChild(card);
+    document.getElementById('desc-' + id).focus();
+    updateGrand();
+  }
+
+  function removeItem(id) {
+    document.getElementById('item-' + id)?.remove();
+    delete items[id];
+    updateGrand();
+    if (Object.keys(items).length === 0) {
+      const empty = document.createElement('div');
+      empty.className = 'empty-state';
+      empty.id = 'emptyState';
+      empty.innerHTML = '<div style="font-size:28px;">📦</div><p>Nenhum item adicionado. Clique em "Adicionar item" abaixo.</p>';
+      document.getElementById('itemsContainer').prepend(empty);
+    }
+  }
+
+  function setPriority(id, val, el) {
+    items[id].urgency = val;
+    document.querySelectorAll(`#pills-${id} .pill`).forEach(p => {
+      p.className = 'pill';
+      if (p === el) {
+        if (val === 'Normal')  p.classList.add('active-normal');
+        if (val === 'Alta')    p.classList.add('active-alta');
+        if (val === 'Urgente') p.classList.add('active-urgente');
+      }
+    });
+  }
+
+  function calcItem(id) {
+    const qty   = parseFloat(document.getElementById('qty-' + id)?.value)   || 0;
+    const price = parseFloat(document.getElementById('price-' + id)?.value) || 0;
+    items[id].qty   = qty;
+    items[id].price = price;
+    const total = qty * price;
+    const el = document.getElementById('total-' + id);
+    if (el) el.textContent = fmt(total);
+    updateGrand();
+  }
+
+  function updateGrand() {
+    const total = Object.values(items).reduce((s, i) => s + ((i.qty || 0) * (i.price || 0)), 0);
+    document.getElementById('grandTotal').textContent = fmt(total);
+  }
+
+  function fmt(n) {
+    return 'R$ ' + Number(n).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  // ── Webhook test ───────────────────────────────────────
+  async function testWebhook() {
+    const url = document.getElementById('webhookUrl').value.trim();
+    const st  = document.getElementById('hookStatus');
+    if (!url) { st.textContent = 'Cole a URL do webhook antes de testar.'; st.className = 'hook-status fail'; return; }
+    st.textContent = 'Enviando requisição de teste...'; st.className = 'hook-status';
+    try {
+      await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ test: true, origem: 'formulario-compras', timestamp: new Date().toISOString() })
+      });
+      st.textContent = '✓ Webhook respondeu com sucesso. Configure o cenário no Make para processar os dados.';
+      st.className = 'hook-status ok';
+    } catch (e) {
+      st.textContent = '✗ Não foi possível alcançar o webhook. Verifique a URL e tente novamente.';
+      st.className = 'hook-status fail';
+    }
+  }
+
+  // ── Validation helpers ────────────────────────────────
+  function markErr(id) {
+    const el = document.getElementById(id);
+    if (el) { el.classList.add('err'); el.addEventListener('input', () => el.classList.remove('err'), { once: true }); }
+  }
+
+  // ── Submit ─────────────────────────────────────────────
+  async function submitForm() {
+    const webhook      = document.getElementById('webhookUrl').value.trim();
+    const solicitante  = document.getElementById('solicitante').value.trim();
+    const email        = document.getElementById('email').value.trim();
+    const departamento = document.getElementById('departamento').value;
+    const dataNec      = document.getElementById('dataNecessidade').value;
+
+    let ok = true;
+    if (!webhook)      { showToast('Configure a URL do webhook antes de enviar.', 'error'); return; }
+    if (!solicitante)  { markErr('solicitante');  ok = false; }
+    if (!email)        { markErr('email');         ok = false; }
+    if (!departamento) { markErr('departamento'); ok = false; }
+    if (!dataNec)      { markErr('dataNecessidade'); ok = false; }
+    if (!ok) { showToast('Preencha os campos obrigatórios destacados.', 'error'); return; }
+
+    const ids = Object.keys(items).filter(id => document.getElementById('item-' + id));
+    if (ids.length === 0) { showToast('Adicione pelo menos um item antes de enviar.', 'error'); return; }
+
+    const itens = [];
+    for (const id of ids) {
+      const desc = document.getElementById('desc-' + id)?.value.trim();
+      if (!desc) { markErr('desc-' + id); ok = false; }
+      const qty   = parseFloat(document.getElementById('qty-' + id)?.value)   || 0;
+      const price = parseFloat(document.getElementById('price-' + id)?.value) || 0;
+      itens.push({
+        numero:         parseInt(id),
+        descricao:      desc || '',
+        categoria:      document.getElementById('cat-' + id)?.value || '',
+        quantidade:     qty,
+        valor_unitario: price,
+        total_item:     parseFloat((qty * price).toFixed(2)),
+        fornecedor:     document.getElementById('supplier-' + id)?.value.trim() || '',
+        urgencia:       items[id].urgency || 'Normal',
+        observacoes:    document.getElementById('obs-' + id)?.value.trim() || '',
+      });
+    }
+    if (!ok) { showToast('Preencha a descrição de todos os itens.', 'error'); return; }
+
+    const payload = {
+      solicitante,
+      email,
+      departamento,
+      centro_custo:      document.getElementById('centroCusto').value.trim(),
+      data_necessidade:  dataNec,
+      justificativa:     document.getElementById('justificativa').value.trim(),
+      total_geral:       parseFloat(itens.reduce((s, i) => s + i.total_item, 0).toFixed(2)),
+      quantidade_itens:  itens.length,
+      data_envio:        new Date().toISOString(),
+      itens,
+    };
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+
+    try {
+      const res = await fetch(webhook, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok || res.status === 200) {
+        showToast('Solicitação enviada com sucesso!', 'success');
+        btn.textContent = '✓ Solicitação enviada!';
+        setTimeout(() => { btn.disabled = false; btn.textContent = 'Enviar solicitação →'; }, 6000);
+      } else {
+        throw new Error('HTTP ' + res.status);
+      }
+    } catch (e) {
+      showToast('Erro ao enviar. Verifique o webhook e tente novamente.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Enviar solicitação →';
+    }
+  }
+
+  // ── Toast ──────────────────────────────────────────────
+  function showToast(msg, type = '') {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show ' + type;
+    setTimeout(() => { t.className = 'toast'; }, 4000);
+  }
+</script>
+</body>
+</html>
