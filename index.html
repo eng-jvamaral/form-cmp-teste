@@ -336,6 +336,7 @@ function renderOpts(id, q){
 function filterDD(id,q){renderOpts(id,q);}
 
 function toggleDD(id){
+  event.stopPropagation();
   const panel = document.getElementById('ddp-'+id);
   const btn   = document.getElementById('ddb-'+id);
   const isOpen = panel.classList.contains('open');
@@ -370,6 +371,7 @@ function buildItemDD(id, key, items){
 }
 function filterItemDD(id,key,q){ renderOpts('item-'+id+'-'+key, q); }
 function toggleItemDD(id,key){
+  event.stopPropagation();
   const ddid = 'item-'+id+'-'+key;
   const panel = document.getElementById('ddp-'+ddid);
   const btn   = document.getElementById('ddb-'+ddid);
