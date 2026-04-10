@@ -243,7 +243,18 @@ const itemsState={};
 
 async function init(){
   setDocDate();
+  //fetch 1
   try{ const r=await fetch(DADOS_URL+"?v="+Date.now()); if(r.ok) appData={...appData,...await r.json()}; }catch(e){}
+
+  //fetch 2 - pra pegar do csv
+  try{
+    const r = await fetch("https://raw.githubusercontent.com/eng-jvamaral/form-cmp-teste/refs/heads/main/base-itens-perpec.csv");
+    if(r.ok){
+      const texto = await r.text();
+      appData.itens_catalogo = texto.split('\n').map(l => l.trim()).filter(Boolean);
+    }
+  }catch(e){}
+  
   await loadCounter();
   renderCode();
   buildDD("setor", appData.setores);
