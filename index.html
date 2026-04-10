@@ -238,15 +238,12 @@ let appData = {
   setores:[],centros_custo:[],itens_catalogo:[],
   unidades:["UN — Unidade","PC — Peça","KG — Quilograma","G — Grama","T — Tonelada","L — Litro","ML — Mililitro","M — Metro","M² — Metro quadrado","M³ — Metro cúbico","CM — Centímetro","MM — Milímetro","CX — Caixa","PCT — Pacote","PAR — Par","ROLO — Rolo","BALDE — Balde","SC — Saco","FARDO — Fardo","JOGO — Jogo / Kit","OUTRO — Outra unidade"]
 };
-let itemCount=0, scCounter=0;
+let itemCount=0;
 const itemsState={};
 
 async function init(){
   setDocDate();
-  //fetch 1
   try{ const r=await fetch(DADOS_URL+"?v="+Date.now()); if(r.ok) appData={...appData,...await r.json()}; }catch(e){}
-
-  //fetch 2 - pra pegar do csv
   try{
     const r = await fetch("https://raw.githubusercontent.com/eng-jvamaral/form-cmp-teste/refs/heads/main/base-itens-perpec.csv");
     if(r.ok){
@@ -254,9 +251,8 @@ async function init(){
       appData.itens_catalogo = texto.split('\n').map(l => l.trim()).filter(Boolean);
     }
   }catch(e){}
-  
-  await loadCounter();
-  renderCode();
+  atualizarCodigo();
+  setInterval(atualizarCodigo, 1000);
   buildDD("setor", appData.setores);
   buildDD("cc",    appData.centros_custo);
 }
@@ -266,27 +262,19 @@ function setDocDate(){
   document.getElementById("dataSolicitacao").value=d.toLocaleDateString("pt-BR");
   document.getElementById("docDate").textContent=d.toLocaleDateString("pt-BR");
 }
-async function loadCounter(){
-  const s=localStorage.getItem("perpec_sc_last");
-  const ano=String(new Date().getFullYear()).slice(-2);
-  if(s){const{seq,year}=JSON.parse(s); scCounter=String(year)===ano?seq:0;}
+function gerarCodigo(){
+  const now=new Date();
+  const dd=String(now.getDate()).padStart(2,'0');
+  const mm=String(now.getMonth()+1).padStart(2,'0');
+  const aa=String(now.getFullYear()).slice(-2);
+  const ss=String(now.getSeconds()).padStart(2,'0');
+  return 'SC-'+dd+mm+aa+'-'+ss;
 }
-function renderCode(){
-  const ano=String(new Date().getFullYear()).slice(-2);
-  const n=scCounter+1;
-  const code="SC-"+String(n).padStart(3,"0")+"-"+ano;
-  document.getElementById("codigoSC").value=code;
-  document.getElementById("docCodeDisplay").textContent=code;
+function atualizarCodigo(){
+  const code=gerarCodigo();
+  document.getElementById('codigoSC').value=code;
+  document.getElementById('docCodeDisplay').textContent=code;
 }
-function getNextCode(){
-  const now = new Date();
-  const ano = String(now.getFullYear()).slice(-2);
-  const seq = String(now.getHours()).padStart(2,'0')
-            + String(now.getMinutes()).padStart(2,'0')
-            + String(now.getSeconds()).padStart(2,'0');
-  return { code: 'SC-' + seq + '-' + ano, seq, year: ano };
-}
-function confirmCounter(seq,year){localStorage.setItem("perpec_sc_last",JSON.stringify({seq,year}));scCounter=seq;}
 
 // ── Dropdown ─────────────────────────────────────────────────────
 function buildDD(id,items){ DD[id]=items; renderOpts(id,""); }
@@ -511,17 +499,15 @@ async function submitForm(){
     });
   }
   if(!ok){showToast("Preencha os campos obrigatórios de todos os itens.","error");return;}
-  const{code,seq,year}=getNextCode();
+  const code=gerarCodigo();
   const payload={codigo_solicitacao:code,solicitante,email,setor,centro_custo:cc,quantidade_itens:itens.length,data_envio:new Date().toISOString(),itens};
   const btn=document.getElementById("submitBtn");
   btn.disabled=true; btn.textContent="Enviando…";
   try{
     const res=await fetch(WEBHOOK_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
     if(res.ok||res.status===200){
-      confirmCounter(seq,year);
       showToast("✓ Solicitação "+code+" enviada!","success");
       btn.textContent="✓ Enviada — "+code;
-      renderCode();
       setTimeout(()=>{btn.disabled=false;btn.textContent="Enviar Solicitação →";},7000);
     }else throw new Error("HTTP "+res.status);
   }catch(e){
