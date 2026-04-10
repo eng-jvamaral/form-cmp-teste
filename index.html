@@ -608,20 +608,6 @@ function gerarPDFBase(payload, tipo){
   doc.setLineWidth(0.8);
   doc.line(0, 28, W, 28);
 
-  // Logo PERPEC — texto simulado (sem imagem embutida)
-  doc.setFontSize(18); doc.setFont('helvetica','bold');
-  doc.setTextColor(26,18,16);
-  doc.text('PERPEC', 14, 14);
-  doc.setFontSize(6.5); doc.setFont('helvetica','bold');
-  doc.setTextColor(100,95,90);
-  doc.setCharSpace(2);
-  doc.text('OILFIELD SUPPLY', 14, 19);
-  doc.setCharSpace(0);
-
-  // Triângulo vermelho simples antes do P
-  doc.setFillColor(192,57,43);
-  doc.triangle(8, 15, 11, 9, 14, 15, 'F');
-
   // Título à direita
   const titulo = tipo==='espelho' ? 'Solicitação de Compra' : 'Espelho para Cotação';
   doc.setFontSize(12); doc.setFont('helvetica','bold');
