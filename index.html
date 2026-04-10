@@ -279,9 +279,12 @@ function renderCode(){
   document.getElementById("docCodeDisplay").textContent=code;
 }
 function getNextCode(){
-  const ano=String(new Date().getFullYear()).slice(-2);
-  const n=scCounter+1;
-  return{code:"SC-"+String(n).padStart(3,"0")+"-"+ano,seq:n,year:ano};
+  const now = new Date();
+  const ano = String(now.getFullYear()).slice(-2);
+  const seq = String(now.getHours()).padStart(2,'0')
+            + String(now.getMinutes()).padStart(2,'0')
+            + String(now.getSeconds()).padStart(2,'0');
+  return { code: 'SC-' + seq + '-' + ano, seq, year: ano };
 }
 function confirmCounter(seq,year){localStorage.setItem("perpec_sc_last",JSON.stringify({seq,year}));scCounter=seq;}
 
