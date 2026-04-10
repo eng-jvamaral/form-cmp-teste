@@ -274,6 +274,7 @@ const DADOS_URL   = "dados.json";
 const DD = {};
 let appData = {
   setores:[],centros_custo:[],itens_catalogo:[],
+  compradora:{nome:"Jotinha",email:"joaovictor.as.eng@gmail.com"},
   unidades:["UN — Unidade","PC — Peça","KG — Quilograma","G — Grama","T — Tonelada","L — Litro","ML — Mililitro","M — Metro","M² — Metro quadrado","M³ — Metro cúbico","CM — Centímetro","MM — Milímetro","CX — Caixa","PCT — Pacote","PAR — Par","ROLO — Rolo","BALDE — Balde","SC — Saco","FARDO — Fardo","JOGO — Jogo / Kit","OUTRO — Outra unidade"]
 };
 let itemCount=0;
@@ -464,7 +465,7 @@ function addItem(){
         </div>
       </div>
       <div class="field">
-        <label>Justificativa da compra</label>
+        <label>Justificativa da compra <span class="req">*</span></label>
         <input type="text" id="justificativa-${id}" placeholder="Por que este item é necessário?"/>
       </div>
       <div class="field">
@@ -526,6 +527,8 @@ async function submitForm(){
     if(!qty){markErr("qty-"+id);ok=false;}
     if(!umVal){markBtnErr("ddb-item-"+id+"-um");ok=false;}
     if(!datanec){markErr("datanec-"+id);ok=false;}
+    const justificativa=document.getElementById("justificativa-"+id)?.value.trim();
+    if(!justificativa){markErr("justificativa-"+id);ok=false;}
     itens.push({
       numero:parseInt(id), item:desc||"", quantidade:parseFloat(qty)||0,
       unidade:um, filial:itemsState[id].filial||"MATRIZ",
@@ -546,6 +549,7 @@ async function submitForm(){
       showToast("✓ Solicitação "+code+" enviada!","success");
       btn.textContent="✓ Enviada — "+code;
       exibirCanhoto(payload);
+      enviarEmails(payload);
       setTimeout(()=>{btn.disabled=false;btn.textContent="Enviar Solicitação →";},7000);
     }else throw new Error("HTTP "+res.status);
   }catch(e){
@@ -555,6 +559,121 @@ async function submitForm(){
 }
  
  
+
+function buildEmailSolicitante(payload){
+  const rows = payload.itens.map(item => {
+    const cls = item.urgencia==='Urgente'?'color:#C0392B;font-weight:700':item.urgencia==='Alta'?'color:#92400E;font-weight:700':'color:#3D5AC0';
+    const dataf = item.data_necessidade ? item.data_necessidade.split('-').reverse().join('/') : '—';
+    const un = item.unidade ? item.unidade.split('—')[0].trim() : '—';
+    return `<tr style="border-bottom:1px solid #F0EDE8">
+      <td style="padding:8px 10px">${item.numero}</td>
+      <td style="padding:8px 10px">${item.item}</td>
+      <td style="padding:8px 10px">${item.quantidade}</td>
+      <td style="padding:8px 10px">${un}</td>
+      <td style="padding:8px 10px">${item.filial}</td>
+      <td style="padding:8px 10px">${dataf}</td>
+      <td style="padding:8px 10px"><span style="${cls}">${item.urgencia}</span></td>
+    </tr>`;
+  }).join('');
+  return `<div style="font-family:Segoe UI,sans-serif;max-width:720px;margin:0 auto">
+    <div style="background:#1A1210;padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:15px;font-weight:700;color:#fff">Solicitação de Compra — PERPEC</span>
+      <span style="font-family:Courier New,monospace;font-size:13px;color:#E8D0C8;font-weight:700">${payload.codigo_solicitacao}</span>
+    </div>
+    <div style="background:#C0392B;padding:6px 24px">
+      <span style="font-size:11px;color:#fff">FP-CMP-0001 — Rev. 1 &nbsp;|&nbsp; ${new Date().toLocaleDateString('pt-BR')}</span>
+    </div>
+    <div style="padding:20px 24px;background:#fff">
+      <table style="width:100%;margin-bottom:16px;border-collapse:collapse">
+        <tr><td style="padding:4px 0;font-size:12px;color:#888;width:140px">Solicitante</td><td style="font-size:14px;font-weight:600">${payload.solicitante}</td></tr>
+        <tr><td style="padding:4px 0;font-size:12px;color:#888">E-mail</td><td style="font-size:14px">${payload.email}</td></tr>
+        <tr><td style="padding:4px 0;font-size:12px;color:#888">Setor</td><td style="font-size:14px">${payload.setor}</td></tr>
+        <tr><td style="padding:4px 0;font-size:12px;color:#888">Centro de Custo</td><td style="font-size:14px">${payload.centro_custo}</td></tr>
+      </table>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="background:#F2F1ED">
+          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">#</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Item</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Qtd</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">UN</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Filial</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Necessidade</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Urgência</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+function buildEmailCompradora(payload){
+  const comp = appData.compradora;
+  const rows = payload.itens.map(item => {
+    const cls = item.urgencia==='Urgente'?'color:#C0392B;font-weight:700':item.urgencia==='Alta'?'color:#92400E;font-weight:700':'color:#3D5AC0';
+    const dataf = item.data_necessidade ? item.data_necessidade.split('-').reverse().join('/') : '—';
+    const un = item.unidade ? item.unidade.split('—')[0].trim() : '—';
+    return `<tr style="border-bottom:1px solid #F0EDE8">
+      <td style="padding:8px 10px">${item.numero}</td>
+      <td style="padding:8px 10px">${item.item}</td>
+      <td style="padding:8px 10px">${item.quantidade}</td>
+      <td style="padding:8px 10px">${un}</td>
+      <td style="padding:8px 10px">${dataf}</td>
+      <td style="padding:8px 10px"><span style="${cls}">${item.urgencia}</span></td>
+    </tr>`;
+  }).join('');
+  return `<div style="font-family:Segoe UI,sans-serif;max-width:720px;margin:0 auto">
+    <div style="background:#1A1210;padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:15px;font-weight:700;color:#fff">Espelho de Compra — PERPEC</span>
+      <span style="font-family:Courier New,monospace;font-size:13px;color:#E8D0C8;font-weight:700">${payload.codigo_solicitacao}</span>
+    </div>
+    <div style="background:#C0392B;padding:6px 24px">
+      <span style="font-size:11px;color:#fff">FP-CMP-0001 — Rev. 1 &nbsp;|&nbsp; ${new Date().toLocaleDateString('pt-BR')}</span>
+    </div>
+    <div style="padding:20px 24px;background:#fff">
+      <table style="width:100%;margin-bottom:16px;border-collapse:collapse">
+        <tr><td style="padding:4px 0;font-size:12px;color:#888;width:140px">Responsável</td><td style="font-size:14px;font-weight:600">${comp.nome}</td></tr>
+        <tr><td style="padding:4px 0;font-size:12px;color:#888">E-mail</td><td style="font-size:14px">${comp.email}</td></tr>
+        <tr><td style="padding:4px 0;font-size:12px;color:#888">Solicitante</td><td style="font-size:14px">${payload.solicitante} — ${payload.setor}</td></tr>
+      </table>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="background:#F2F1ED">
+          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">#</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Item</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Qtd</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">UN</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Necessidade</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Urgência</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+async function enviarEmails(payload){
+  const comp = appData.compradora;
+  // Envia ao Make um segundo request só para os emails (sem criar item no Monday)
+  // O Make vai receber o campo "tipo":"email" e processar diferente
+  const emailPayload = {
+    tipo: "email",
+    emails: [
+      {
+        para: payload.email,
+        assunto: "CANHOTO - " + payload.codigo_solicitacao,
+        corpo: buildEmailSolicitante(payload)
+      },
+      {
+        para: comp.email,
+        assunto: "ESPELHO - " + payload.codigo_solicitacao,
+        corpo: buildEmailCompradora(payload)
+      }
+    ]
+  };
+  try{
+    await fetch(WEBHOOK_URL, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(emailPayload)});
+  }catch(e){ console.warn("Erro ao enviar emails:", e); }
+}
+
 function exibirCanhoto(payload){
   document.getElementById('c-codigo').textContent = payload.codigo_solicitacao;
   document.getElementById('c-data').textContent = new Date().toLocaleString('pt-BR');
