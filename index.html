@@ -145,8 +145,11 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
 .canhoto-table td{padding:8px 10px;border-bottom:1px solid #F0EDE8;color:#18171A;vertical-align:top}
 .canhoto-table tr:last-child td{border-bottom:none}
 .canhoto-footer{background:#F8F7F5;padding:1rem 1.8rem;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid #E0DBD5}
-.btn-imprimir{padding:10px 20px;border:none;border-radius:8px;background:#C0392B;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
-.btn-imprimir:hover{background:#961c13}
+.btn-pdf{padding:10px 18px;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px}
+.btn-espelho{background:#1A1210;color:#fff}
+.btn-espelho:hover{background:#2D1F1A}
+.btn-cotacao{background:#C0392B;color:#fff}
+.btn-cotacao:hover{background:#961c13}
 .btn-fechar{padding:10px 20px;border:1px solid #C5BDB5;border-radius:8px;background:#fff;color:#18171A;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
 .btn-fechar:hover{background:#F2F1ED}
 .urgencia-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
@@ -160,6 +163,8 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
   body > *:not(#canhoto){display:none}
 }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
  
@@ -548,8 +553,8 @@ async function submitForm(){
     if(res.ok||res.status===200){
       showToast("✓ Solicitação "+code+" enviada!","success");
       btn.textContent="✓ Enviada — "+code;
+      window._canhotoPay = payload;
       exibirCanhoto(payload);
-      enviarEmails(payload);
       setTimeout(()=>{btn.disabled=false;btn.textContent="Enviar Solicitação →";},7000);
     }else throw new Error("HTTP "+res.status);
   }catch(e){
@@ -560,113 +565,6 @@ async function submitForm(){
  
  
 
-function buildEmailSolicitante(payload){
-  const rows = payload.itens.map(item => {
-    const cls = item.urgencia==='Urgente'?'color:#C0392B;font-weight:700':item.urgencia==='Alta'?'color:#92400E;font-weight:700':'color:#3D5AC0';
-    const dataf = item.data_necessidade ? item.data_necessidade.split('-').reverse().join('/') : '—';
-    const un = item.unidade ? item.unidade.split('—')[0].trim() : '—';
-    return `<tr style="border-bottom:1px solid #F0EDE8">
-      <td style="padding:8px 10px">${item.numero}</td>
-      <td style="padding:8px 10px">${item.item}</td>
-      <td style="padding:8px 10px">${item.quantidade}</td>
-      <td style="padding:8px 10px">${un}</td>
-      <td style="padding:8px 10px">${item.filial}</td>
-      <td style="padding:8px 10px">${dataf}</td>
-      <td style="padding:8px 10px"><span style="${cls}">${item.urgencia}</span></td>
-    </tr>`;
-  }).join('');
-  return `<div style="font-family:Segoe UI,sans-serif;max-width:720px;margin:0 auto">
-    <div style="background:#1A1210;padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:15px;font-weight:700;color:#fff">Solicitação de Compra — PERPEC</span>
-      <span style="font-family:Courier New,monospace;font-size:13px;color:#E8D0C8;font-weight:700">${payload.codigo_solicitacao}</span>
-    </div>
-    <div style="background:#C0392B;padding:6px 24px">
-      <span style="font-size:11px;color:#fff">FP-CMP-0001 — Rev. 1 &nbsp;|&nbsp; ${new Date().toLocaleDateString('pt-BR')}</span>
-    </div>
-    <div style="padding:20px 24px;background:#fff">
-      <table style="width:100%;margin-bottom:16px;border-collapse:collapse">
-        <tr><td style="padding:4px 0;font-size:12px;color:#888;width:140px">Solicitante</td><td style="font-size:14px;font-weight:600">${payload.solicitante}</td></tr>
-        <tr><td style="padding:4px 0;font-size:12px;color:#888">E-mail</td><td style="font-size:14px">${payload.email}</td></tr>
-        <tr><td style="padding:4px 0;font-size:12px;color:#888">Setor</td><td style="font-size:14px">${payload.setor}</td></tr>
-        <tr><td style="padding:4px 0;font-size:12px;color:#888">Centro de Custo</td><td style="font-size:14px">${payload.centro_custo}</td></tr>
-      </table>
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead><tr style="background:#F2F1ED">
-          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">#</th>
-          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Item</th>
-          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Qtd</th>
-          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">UN</th>
-          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Filial</th>
-          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Necessidade</th>
-          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Urgência</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-  </div>`;
-}
-
-function buildEmailCompradora(payload){
-  const comp = appData.compradora;
-  const rows = payload.itens.map(item => {
-    const cls = item.urgencia==='Urgente'?'color:#C0392B;font-weight:700':item.urgencia==='Alta'?'color:#92400E;font-weight:700':'color:#3D5AC0';
-    const dataf = item.data_necessidade ? item.data_necessidade.split('-').reverse().join('/') : '—';
-    const un = item.unidade ? item.unidade.split('—')[0].trim() : '—';
-    return `<tr style="border-bottom:1px solid #F0EDE8">
-      <td style="padding:8px 10px">${item.numero}</td>
-      <td style="padding:8px 10px">${item.item}</td>
-      <td style="padding:8px 10px">${item.quantidade}</td>
-      <td style="padding:8px 10px">${un}</td>
-      <td style="padding:8px 10px">${dataf}</td>
-      <td style="padding:8px 10px"><span style="${cls}">${item.urgencia}</span></td>
-    </tr>`;
-  }).join('');
-  return `<div style="font-family:Segoe UI,sans-serif;max-width:720px;margin:0 auto">
-    <div style="background:#1A1210;padding:16px 24px;display:flex;justify-content:space-between;align-items:center">
-      <span style="font-size:15px;font-weight:700;color:#fff">Espelho de Compra — PERPEC</span>
-      <span style="font-family:Courier New,monospace;font-size:13px;color:#E8D0C8;font-weight:700">${payload.codigo_solicitacao}</span>
-    </div>
-    <div style="background:#C0392B;padding:6px 24px">
-      <span style="font-size:11px;color:#fff">FP-CMP-0001 — Rev. 1 &nbsp;|&nbsp; ${new Date().toLocaleDateString('pt-BR')}</span>
-    </div>
-    <div style="padding:20px 24px;background:#fff">
-      <table style="width:100%;margin-bottom:16px;border-collapse:collapse">
-        <tr><td style="padding:4px 0;font-size:12px;color:#888;width:140px">Responsável</td><td style="font-size:14px;font-weight:600">${comp.nome}</td></tr>
-        <tr><td style="padding:4px 0;font-size:12px;color:#888">E-mail</td><td style="font-size:14px">${comp.email}</td></tr>
-        <tr><td style="padding:4px 0;font-size:12px;color:#888">Solicitante</td><td style="font-size:14px">${payload.solicitante} — ${payload.setor}</td></tr>
-      </table>
-      <table style="width:100%;border-collapse:collapse;font-size:13px">
-        <thead><tr style="background:#F2F1ED">
-          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">#</th>
-          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Item</th>
-          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Qtd</th>
-          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">UN</th>
-          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Necessidade</th>
-          <th style="padding:8px 10px;text-align:left;font-size:10px;text-transform:uppercase;color:#6A6760">Urgência</th>
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
-    </div>
-  </div>`;
-}
-
-async function enviarEmails(payload){
-  const comp = appData.compradora;
-  // Envia ao Make um segundo request só para os emails (sem criar item no Monday)
-  // O Make vai receber o campo "tipo":"email" e processar diferente
-  const emailPayload = {
-    tipo: "email",
-    emails: [
-      {
-        para: payload.email,
-        assunto: "CANHOTO - " + payload.codigo_solicitacao,
-        corpo: buildEmailSolicitante(payload)
-      },
-      {
-        para: comp.email,
-        assunto: "ESPELHO - " + payload.codigo_solicitacao,
-        corpo: buildEmailCompradora(payload)
-      }
     ]
   };
   try{
@@ -705,6 +603,123 @@ function fecharCanhoto(){
   document.body.style.overflow='';
 }
  
+
+function gerarPDFBase(payload, tipo){
+  const {jsPDF} = window.jspdf;
+  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
+  const W = doc.internal.pageSize.getWidth();
+
+  // Header escuro
+  doc.setFillColor(26,18,16);
+  doc.rect(0,0,W,22,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(13); doc.setFont('helvetica','bold');
+  doc.text('PERPEC Oilfield Supply', 14, 10);
+  doc.setFontSize(9); doc.setFont('helvetica','normal');
+  doc.setTextColor(200,180,175);
+  doc.text(tipo==='espelho'?'Solicitação de Compra':'Espelho para Cotação', 14, 17);
+  doc.setFont('helvetica','bold');
+  doc.setTextColor(255,255,255);
+  doc.text(payload.codigo_solicitacao, W-14, 13, {align:'right'});
+
+  // Faixa vermelha
+  doc.setFillColor(192,57,43);
+  doc.rect(0,22,W,7,'F');
+  doc.setTextColor(255,255,255);
+  doc.setFontSize(8); doc.setFont('helvetica','normal');
+  doc.text('FP-CMP-0001  |  Rev. 1  |  '+new Date().toLocaleDateString('pt-BR'), 14, 27);
+
+  // Dados do cabeçalho
+  doc.setTextColor(30,30,30);
+  doc.setFontSize(9);
+  let y = 38;
+
+  if(tipo==='espelho'){
+    const campos = [
+      ['Solicitante', payload.solicitante],
+      ['E-mail', payload.email],
+      ['Setor', payload.setor],
+      ['Centro de Custo', payload.centro_custo],
+    ];
+    campos.forEach(([label, val]) => {
+      doc.setFont('helvetica','bold'); doc.setTextColor(120,110,105);
+      doc.text(label, 14, y);
+      doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30);
+      doc.text(val||'—', 55, y);
+      y += 6;
+    });
+  } else {
+    // cotação: dados da compradora vêm do dados.json
+    const comp = appData.compradora || {nome:'Compradora', email:''};
+    const campos = [
+      ['Responsável', comp.nome],
+      ['E-mail', comp.email],
+      ['Solicitante', payload.solicitante + ' — ' + payload.setor],
+    ];
+    campos.forEach(([label, val]) => {
+      doc.setFont('helvetica','bold'); doc.setTextColor(120,110,105);
+      doc.text(label, 14, y);
+      doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30);
+      doc.text(val||'—', 55, y);
+      y += 6;
+    });
+  }
+
+  y += 4;
+
+  // Tabela de itens
+  const head = tipo==='espelho'
+    ? [['#','Item','Qtd','UN','Filial','Necessidade','Urgência']]
+    : [['#','Item','Qtd','UN']];
+
+  const body = payload.itens.map(item => {
+    const un = item.unidade ? item.unidade.split('—')[0].trim() : '—';
+    const dataf = item.data_necessidade ? item.data_necessidade.split('-').reverse().join('/') : '—';
+    if(tipo==='espelho'){
+      return [item.numero, item.item, item.quantidade, un, item.filial, dataf, item.urgencia];
+    } else {
+      return [item.numero, item.item, item.quantidade, un];
+    }
+  });
+
+  const colStyles = tipo==='espelho'
+    ? {0:{cellWidth:8},1:{cellWidth:80},2:{cellWidth:14},3:{cellWidth:16},4:{cellWidth:20},5:{cellWidth:26},6:{cellWidth:22}}
+    : {0:{cellWidth:8},1:{cellWidth:130},2:{cellWidth:20},3:{cellWidth:22}};
+
+  doc.autoTable({
+    head, body,
+    startY: y,
+    margin:{left:14,right:14},
+    styles:{fontSize:8, cellPadding:3},
+    headStyles:{fillColor:[242,241,237], textColor:[100,100,95], fontStyle:'bold', fontSize:7.5},
+    alternateRowStyles:{fillColor:[250,249,247]},
+    columnStyles: colStyles,
+  });
+
+  // Rodapé
+  const pageH = doc.internal.pageSize.getHeight();
+  doc.setDrawColor(200,190,185);
+  doc.line(14, pageH-12, W-14, pageH-12);
+  doc.setFontSize(7); doc.setTextColor(150,140,135);
+  doc.text('Documento gerado em '+new Date().toLocaleString('pt-BR')+' — PERPEC Oilfield Supply', 14, pageH-7);
+  doc.text(payload.codigo_solicitacao, W-14, pageH-7, {align:'right'});
+
+  return doc;
+}
+
+function gerarPDFEspelho(){
+  if(!window._canhotoPay){ showToast('Nenhuma solicitação enviada.','error'); return; }
+  const doc = gerarPDFBase(window._canhotoPay, 'espelho');
+  const nome = window._canhotoPay.solicitante.replace(/\s+/g,'_');
+  doc.save('CANHOTO-'+window._canhotoPay.codigo_solicitacao+'-'+nome+'.pdf');
+}
+
+function gerarPDFCotacao(){
+  if(!window._canhotoPay){ showToast('Nenhuma solicitação enviada.','error'); return; }
+  const doc = gerarPDFBase(window._canhotoPay, 'cotacao');
+  doc.save('COTACAO-'+window._canhotoPay.codigo_solicitacao+'.pdf');
+}
+
 function showToast(msg,type){
   const t=document.getElementById("toast");
   t.textContent=msg; t.className="toast show "+(type||"");
@@ -757,7 +772,8 @@ init();
     </div>
     <div class="canhoto-footer">
       <button class="btn-fechar" onclick="fecharCanhoto()">Fechar</button>
-      <button class="btn-imprimir" onclick="window.print()">⬇ Salvar PDF</button>
+      <button class="btn-pdf btn-espelho" onclick="gerarPDFEspelho()">⬇ Espelho Completo</button>
+      <button class="btn-pdf btn-cotacao" onclick="gerarPDFCotacao()">⬇ Para Cotação</button>
     </div>
   </div>
 </div>
