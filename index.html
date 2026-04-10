@@ -295,7 +295,16 @@ function renderOpts(id,q){
   if(!list||!list.length){ c.innerHTML='<div class="dd-none">Nenhum resultado</div>'; return; }
   list.forEach(item=>{
     const d=document.createElement("div"); d.className="dd-opt"; d.textContent=item;
-    d.addEventListener("click",e=>{ e.stopPropagation(); selectDD(id,item); });
+    d.addEventListener("click",e=>{
+    e.stopPropagation();
+    if(id.startsWith("item-")){
+    const parts=id.split("-"); // ["item","1","cat"] ou ["item","1","um"]
+    selectItemDD(parts[1], parts[2], item);
+  } else {
+    selectDD(id,item);
+  }
+});
+    
     c.appendChild(d);
   });
 }
