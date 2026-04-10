@@ -279,6 +279,7 @@ const DADOS_URL   = "dados.json";
 const DD = {};
 let appData = {
   setores:[],centros_custo:[],itens_catalogo:[],
+  compradora:{nome:"Tatiane Santos",email:"tatiane@perpec.com.br",telefone:"71 99401-0041"},
   unidades:["UN — Unidade","PC — Peça","KG — Quilograma","G — Grama","T — Tonelada","L — Litro","ML — Mililitro","M — Metro","M² — Metro quadrado","M³ — Metro cúbico","CM — Centímetro","MM — Milímetro","CX — Caixa","PCT — Pacote","PAR — Par","ROLO — Rolo","BALDE — Balde","SC — Saco","FARDO — Fardo","JOGO — Jogo / Kit","OUTRO — Outra unidade"]
 };
 let itemCount=0;
@@ -597,73 +598,95 @@ function gerarPDFBase(payload, tipo){
   const {jsPDF} = window.jspdf;
   const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
   const W = doc.internal.pageSize.getWidth();
-  const comp = appData.compradora || {nome:'Compradora', email:''};
+  const comp = appData.compradora || {nome:'Compradora', email:'', telefone:''};
 
-  // Header escuro
-  doc.setFillColor(26,18,16);
-  doc.rect(0,0,W,22,'F');
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(13); doc.setFont('helvetica','bold');
-  doc.text('PERPEC Oilfield Supply', 14, 10);
-  doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.setTextColor(200,180,175);
-  const titulo = tipo==='espelho' ? 'Solicitação de Compra — Espelho do Solicitante' : 'Espelho para Cotação';
-  doc.text(titulo, 14, 17);
-  doc.setFont('helvetica','bold'); doc.setTextColor(255,255,255);
-  doc.text(payload.codigo_solicitacao, W-14, 13, {align:'right'});
+  // ── HEADER BRANCO com logo e título ──────────────────────────────
+  // Borda inferior vermelha do header
+  doc.setDrawColor(192,57,43);
+  doc.setLineWidth(0.8);
+  doc.line(0, 28, W, 28);
 
-  // Faixa vermelha
+  // Logo PERPEC — texto simulado (sem imagem embutida)
+  doc.setFontSize(18); doc.setFont('helvetica','bold');
+  doc.setTextColor(26,18,16);
+  doc.text('PERPEC', 14, 14);
+  doc.setFontSize(6.5); doc.setFont('helvetica','bold');
+  doc.setTextColor(100,95,90);
+  doc.setCharSpace(2);
+  doc.text('OILFIELD SUPPLY', 14, 19);
+  doc.setCharSpace(0);
+
+  // Triângulo vermelho simples antes do P
   doc.setFillColor(192,57,43);
-  doc.rect(0,22,W,7,'F');
-  doc.setTextColor(255,255,255);
+  doc.triangle(8, 15, 11, 9, 14, 15, 'F');
+
+  // Título à direita
+  const titulo = tipo==='espelho' ? 'Solicitação de Compra' : 'Espelho para Cotação';
+  doc.setFontSize(12); doc.setFont('helvetica','bold');
+  doc.setTextColor(26,18,16);
+  doc.text(titulo, W-14, 11, {align:'right'});
   doc.setFontSize(8); doc.setFont('helvetica','normal');
-  doc.text('FP-CMP-0001  |  Rev. 1  |  '+new Date().toLocaleDateString('pt-BR'), 14, 27);
+  doc.setTextColor(26,18,16);
+  doc.text('FP-CMP-0001 — Rev. 1', W-14, 17, {align:'right'});
 
-  let y = 36;
+  // Código SC e data
+  let y = 38;
+  doc.setFontSize(9); doc.setFont('courier','bold');
+  doc.setTextColor(26,18,16);
+  doc.text(payload.codigo_solicitacao, 14, 35);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5);
+  doc.text(new Date().toLocaleString('pt-BR'), W-14, 35, {align:'right'});
 
-  // Dados da compradora (sempre no topo em ambos os documentos)
-  doc.setDrawColor(220,215,210);
+  // Linha separadora sutil
+  doc.setDrawColor(220,215,210); doc.setLineWidth(0.3);
+  doc.line(14, 38, W-14, 38);
+  y = 44;
+
+  // ── BLOCO COMPRADORA ──────────────────────────────────────────────
   doc.setFillColor(248,247,245);
-  doc.roundedRect(14, y, W-28, 18, 2, 2, 'FD');
-  doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(100,95,90);
+  doc.setDrawColor(220,215,210); doc.setLineWidth(0.3);
+  doc.roundedRect(14, y, W-28, 20, 2, 2, 'FD');
+  doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(130,120,115);
   doc.text('COMPRADORA', 18, y+5);
-  doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30);
-  doc.setFontSize(9);
+  doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(26,18,16);
   doc.text(comp.nome, 18, y+11);
-  doc.setFontSize(8); doc.setTextColor(100,95,90);
-  doc.text(comp.email, 18, y+16);
-  y += 24;
+  doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(80,75,70);
+  const contato = [comp.email, comp.telefone].filter(Boolean).join('   |   ');
+  doc.text(contato, 18, y+17);
+  y += 26;
 
-  // Dados do requisitante (apenas no espelho)
+  // ── BLOCO REQUISITANTE (apenas espelho) ───────────────────────────
   if(tipo === 'espelho'){
     doc.setFillColor(255,255,255);
-    doc.roundedRect(14, y, W-28, 26, 2, 2, 'FD');
-    doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(100,95,90);
+    doc.setDrawColor(220,215,210); doc.setLineWidth(0.3);
+    doc.roundedRect(14, y, W-28, 28, 2, 2, 'FD');
+    doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(130,120,115);
     doc.text('REQUISITANTE', 18, y+5);
+    const half = (W-28)/2;
     const campos = [
-      ['Solicitante', payload.solicitante],
-      ['E-mail', payload.email],
-      ['Setor', payload.setor],
-      ['Centro de Custo', payload.centro_custo],
+      ['Nome', payload.solicitante, 18, y+12],
+      ['E-mail', payload.email, 18, y+21],
+      ['Setor', payload.setor, 18+half, y+12],
+      ['Centro de Custo', payload.centro_custo, 18+half, y+21],
     ];
-    doc.setFontSize(8.5);
-    campos.forEach(([label, val], i) => {
-      const col = i < 2 ? 18 : (W/2)+4;
-      const row = i < 2 ? y+10+(i*7) : y+10+((i-2)*7);
-      doc.setFont('helvetica','bold'); doc.setTextColor(130,120,115);
-      doc.text(label+':', col, row);
-      doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30);
-      doc.text(val||'—', col+32, row);
+    campos.forEach(([label, val, x, ry]) => {
+      doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(130,120,115);
+      doc.text(label, x, ry-4);
+      doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(26,18,16);
+      doc.text(val||'—', x, ry);
     });
-    y += 32;
+    y += 34;
   }
 
   y += 2;
 
-  // Tabela de itens
+  // ── TABELA DE ITENS ───────────────────────────────────────────────
   const isEspelho = tipo === 'espelho';
+
+  // Espelho: #, Item, Qtd, UN, Filial, Necessidade, Urgência, Observações
+  // Cotação: #, Item, Qtd, UN, Observações (sem filial, necessidade, urgência)
   const head = isEspelho
-    ? [['#','Código + Descrição','Qtd','UN','Filial','Necessidade','Observações']]
+    ? [['#','Código + Descrição','Qtd','UN','Filial','Necessidade','Urgência','Obs.']]
     : [['#','Código + Descrição','Qtd','UN','Observações']];
 
   const body = payload.itens.map(item => {
@@ -671,36 +694,48 @@ function gerarPDFBase(payload, tipo){
     const dataf = item.data_necessidade ? item.data_necessidade.split('-').reverse().join('/') : '—';
     const obs = item.observacoes || '—';
     if(isEspelho){
-      return [item.numero, item.item, item.quantidade, un, item.filial, dataf, obs];
+      return [item.numero, item.item, item.quantidade, un, item.filial, dataf, item.urgencia, obs];
     } else {
       return [item.numero, item.item, item.quantidade, un, obs];
     }
   });
 
   const colStyles = isEspelho
-    ? {0:{cellWidth:8},1:{cellWidth:65},2:{cellWidth:12},3:{cellWidth:14},4:{cellWidth:18},5:{cellWidth:22},6:{cellWidth:48}}
-    : {0:{cellWidth:8},1:{cellWidth:90},2:{cellWidth:14},3:{cellWidth:16},4:{cellWidth:58}};
+    ? {0:{cellWidth:7},1:{cellWidth:57},2:{cellWidth:11},3:{cellWidth:12},4:{cellWidth:17},5:{cellWidth:21},6:{cellWidth:18},7:{cellWidth:40}}
+    : {0:{cellWidth:8},1:{cellWidth:100},2:{cellWidth:14},3:{cellWidth:16},4:{cellWidth:48}};
 
   doc.autoTable({
     head, body,
     startY: y,
     margin:{left:14, right:14},
-    styles:{fontSize:8, cellPadding:3, overflow:'linebreak'},
+    styles:{fontSize:8, cellPadding:3, overflow:'linebreak', textColor:[26,18,16]},
     headStyles:{fillColor:[242,241,237], textColor:[90,85,80], fontStyle:'bold', fontSize:7.5},
     alternateRowStyles:{fillColor:[250,249,247]},
     columnStyles: colStyles,
+    didDrawCell: function(data){
+      // Colorir urgência no espelho
+      if(isEspelho && data.column.index===6 && data.section==='body'){
+        const val = data.cell.raw;
+        const color = val==='Urgente'?[192,57,43]:val==='Alta'?[146,64,14]:[61,90,192];
+        doc.setTextColor(...color);
+        doc.setFontSize(8); doc.setFont('helvetica','bold');
+        doc.text(val, data.cell.x+data.cell.padding('left'), data.cell.y+data.cell.height/2+2.5);
+        doc.setTextColor(26,18,16); doc.setFont('helvetica','normal');
+      }
+    },
   });
 
-  // Rodapé
+  // ── RODAPÉ ────────────────────────────────────────────────────────
   const pageH = doc.internal.pageSize.getHeight();
-  doc.setDrawColor(200,190,185);
+  doc.setDrawColor(200,190,185); doc.setLineWidth(0.3);
   doc.line(14, pageH-12, W-14, pageH-12);
-  doc.setFontSize(7); doc.setTextColor(150,140,135);
+  doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(150,140,135);
   doc.text('Gerado em '+new Date().toLocaleString('pt-BR')+' — PERPEC Oilfield Supply', 14, pageH-7);
   doc.text(payload.codigo_solicitacao, W-14, pageH-7, {align:'right'});
 
   return doc;
 }
+
 
 function gerarPDFEspelho(){
   if(!window._canhotoPay){ showToast('Nenhuma solicitação enviada.','error'); return; }
