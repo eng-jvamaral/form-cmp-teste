@@ -290,7 +290,6 @@ async function init(){
     }
   }catch(e){}
   atualizarCodigo();
-  setInterval(atualizarCodigo, 1000);
   buildDD("setor", appData.setores);
   buildDD("cc",    appData.centros_custo);
 }
@@ -300,13 +299,13 @@ function setDocDate(){
   document.getElementById("dataSolicitacao").value=d.toLocaleDateString("pt-BR");
   document.getElementById("docDate").textContent=d.toLocaleDateString("pt-BR");
 }
+const RND = String(Math.floor(Math.random()*90)+10);
+ 
 function gerarCodigo(){
   const now=new Date();
-  const dd=String(now.getDate()).padStart(2,'0');
-  const mm=String(now.getMonth()+1).padStart(2,'0');
   const aa=String(now.getFullYear()).slice(-2);
   const ss=String(now.getSeconds()).padStart(2,'0');
-  return 'SC-'+dd+mm+aa+'-'+ss;
+  return 'SC-'+RND+ss+'-'+aa;
 }
 function atualizarCodigo(){
   const code=gerarCodigo();
