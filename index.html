@@ -145,11 +145,8 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
 .canhoto-table td{padding:8px 10px;border-bottom:1px solid #F0EDE8;color:#18171A;vertical-align:top}
 .canhoto-table tr:last-child td{border-bottom:none}
 .canhoto-footer{background:#F8F7F5;padding:1rem 1.8rem;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid #E0DBD5}
-.btn-pdf{padding:10px 18px;border:none;border-radius:8px;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px}
-.btn-espelho{background:#1A1210;color:#fff}
-.btn-espelho:hover{background:#2D1F1A}
-.btn-cotacao{background:#C0392B;color:#fff}
-.btn-cotacao:hover{background:#961c13}
+.btn-imprimir{padding:10px 20px;border:none;border-radius:8px;background:#C0392B;color:#fff;font-size:13px;font-weight:700;font-family:inherit;cursor:pointer}
+.btn-imprimir:hover{background:#961c13}
 .btn-fechar{padding:10px 20px;border:1px solid #C5BDB5;border-radius:8px;background:#fff;color:#18171A;font-size:13px;font-weight:600;font-family:inherit;cursor:pointer}
 .btn-fechar:hover{background:#F2F1ED}
 .urgencia-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600}
@@ -163,8 +160,6 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
   body > *:not(#canhoto){display:none}
 }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
 <body>
  
@@ -279,7 +274,6 @@ const DADOS_URL   = "dados.json";
 const DD = {};
 let appData = {
   setores:[],centros_custo:[],itens_catalogo:[],
-  compradora:{nome:"Jotinha",email:"joaovictor.as.eng@gmail.com"},
   unidades:["UN — Unidade","PC — Peça","KG — Quilograma","G — Grama","T — Tonelada","L — Litro","ML — Mililitro","M — Metro","M² — Metro quadrado","M³ — Metro cúbico","CM — Centímetro","MM — Milímetro","CX — Caixa","PCT — Pacote","PAR — Par","ROLO — Rolo","BALDE — Balde","SC — Saco","FARDO — Fardo","JOGO — Jogo / Kit","OUTRO — Outra unidade"]
 };
 let itemCount=0;
@@ -470,7 +464,7 @@ function addItem(){
         </div>
       </div>
       <div class="field">
-        <label>Justificativa da compra <span class="req">*</span></label>
+        <label>Justificativa da compra</label>
         <input type="text" id="justificativa-${id}" placeholder="Por que este item é necessário?"/>
       </div>
       <div class="field">
@@ -532,8 +526,6 @@ async function submitForm(){
     if(!qty){markErr("qty-"+id);ok=false;}
     if(!umVal){markBtnErr("ddb-item-"+id+"-um");ok=false;}
     if(!datanec){markErr("datanec-"+id);ok=false;}
-    const justificativa=document.getElementById("justificativa-"+id)?.value.trim();
-    if(!justificativa){markErr("justificativa-"+id);ok=false;}
     itens.push({
       numero:parseInt(id), item:desc||"", quantidade:parseFloat(qty)||0,
       unidade:um, filial:itemsState[id].filial||"MATRIZ",
@@ -553,7 +545,6 @@ async function submitForm(){
     if(res.ok||res.status===200){
       showToast("✓ Solicitação "+code+" enviada!","success");
       btn.textContent="✓ Enviada — "+code;
-      window._canhotoPay = payload;
       exibirCanhoto(payload);
       setTimeout(()=>{btn.disabled=false;btn.textContent="Enviar Solicitação →";},7000);
     }else throw new Error("HTTP "+res.status);
@@ -564,14 +555,6 @@ async function submitForm(){
 }
  
  
-
-    ]
-  };
-  try{
-    await fetch(WEBHOOK_URL, {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(emailPayload)});
-  }catch(e){ console.warn("Erro ao enviar emails:", e); }
-}
-
 function exibirCanhoto(payload){
   document.getElementById('c-codigo').textContent = payload.codigo_solicitacao;
   document.getElementById('c-data').textContent = new Date().toLocaleString('pt-BR');
@@ -603,123 +586,6 @@ function fecharCanhoto(){
   document.body.style.overflow='';
 }
  
-
-function gerarPDFBase(payload, tipo){
-  const {jsPDF} = window.jspdf;
-  const doc = new jsPDF({orientation:'portrait', unit:'mm', format:'a4'});
-  const W = doc.internal.pageSize.getWidth();
-
-  // Header escuro
-  doc.setFillColor(26,18,16);
-  doc.rect(0,0,W,22,'F');
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(13); doc.setFont('helvetica','bold');
-  doc.text('PERPEC Oilfield Supply', 14, 10);
-  doc.setFontSize(9); doc.setFont('helvetica','normal');
-  doc.setTextColor(200,180,175);
-  doc.text(tipo==='espelho'?'Solicitação de Compra':'Espelho para Cotação', 14, 17);
-  doc.setFont('helvetica','bold');
-  doc.setTextColor(255,255,255);
-  doc.text(payload.codigo_solicitacao, W-14, 13, {align:'right'});
-
-  // Faixa vermelha
-  doc.setFillColor(192,57,43);
-  doc.rect(0,22,W,7,'F');
-  doc.setTextColor(255,255,255);
-  doc.setFontSize(8); doc.setFont('helvetica','normal');
-  doc.text('FP-CMP-0001  |  Rev. 1  |  '+new Date().toLocaleDateString('pt-BR'), 14, 27);
-
-  // Dados do cabeçalho
-  doc.setTextColor(30,30,30);
-  doc.setFontSize(9);
-  let y = 38;
-
-  if(tipo==='espelho'){
-    const campos = [
-      ['Solicitante', payload.solicitante],
-      ['E-mail', payload.email],
-      ['Setor', payload.setor],
-      ['Centro de Custo', payload.centro_custo],
-    ];
-    campos.forEach(([label, val]) => {
-      doc.setFont('helvetica','bold'); doc.setTextColor(120,110,105);
-      doc.text(label, 14, y);
-      doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30);
-      doc.text(val||'—', 55, y);
-      y += 6;
-    });
-  } else {
-    // cotação: dados da compradora vêm do dados.json
-    const comp = appData.compradora || {nome:'Compradora', email:''};
-    const campos = [
-      ['Responsável', comp.nome],
-      ['E-mail', comp.email],
-      ['Solicitante', payload.solicitante + ' — ' + payload.setor],
-    ];
-    campos.forEach(([label, val]) => {
-      doc.setFont('helvetica','bold'); doc.setTextColor(120,110,105);
-      doc.text(label, 14, y);
-      doc.setFont('helvetica','normal'); doc.setTextColor(30,30,30);
-      doc.text(val||'—', 55, y);
-      y += 6;
-    });
-  }
-
-  y += 4;
-
-  // Tabela de itens
-  const head = tipo==='espelho'
-    ? [['#','Item','Qtd','UN','Filial','Necessidade','Urgência']]
-    : [['#','Item','Qtd','UN']];
-
-  const body = payload.itens.map(item => {
-    const un = item.unidade ? item.unidade.split('—')[0].trim() : '—';
-    const dataf = item.data_necessidade ? item.data_necessidade.split('-').reverse().join('/') : '—';
-    if(tipo==='espelho'){
-      return [item.numero, item.item, item.quantidade, un, item.filial, dataf, item.urgencia];
-    } else {
-      return [item.numero, item.item, item.quantidade, un];
-    }
-  });
-
-  const colStyles = tipo==='espelho'
-    ? {0:{cellWidth:8},1:{cellWidth:80},2:{cellWidth:14},3:{cellWidth:16},4:{cellWidth:20},5:{cellWidth:26},6:{cellWidth:22}}
-    : {0:{cellWidth:8},1:{cellWidth:130},2:{cellWidth:20},3:{cellWidth:22}};
-
-  doc.autoTable({
-    head, body,
-    startY: y,
-    margin:{left:14,right:14},
-    styles:{fontSize:8, cellPadding:3},
-    headStyles:{fillColor:[242,241,237], textColor:[100,100,95], fontStyle:'bold', fontSize:7.5},
-    alternateRowStyles:{fillColor:[250,249,247]},
-    columnStyles: colStyles,
-  });
-
-  // Rodapé
-  const pageH = doc.internal.pageSize.getHeight();
-  doc.setDrawColor(200,190,185);
-  doc.line(14, pageH-12, W-14, pageH-12);
-  doc.setFontSize(7); doc.setTextColor(150,140,135);
-  doc.text('Documento gerado em '+new Date().toLocaleString('pt-BR')+' — PERPEC Oilfield Supply', 14, pageH-7);
-  doc.text(payload.codigo_solicitacao, W-14, pageH-7, {align:'right'});
-
-  return doc;
-}
-
-function gerarPDFEspelho(){
-  if(!window._canhotoPay){ showToast('Nenhuma solicitação enviada.','error'); return; }
-  const doc = gerarPDFBase(window._canhotoPay, 'espelho');
-  const nome = window._canhotoPay.solicitante.replace(/\s+/g,'_');
-  doc.save('CANHOTO-'+window._canhotoPay.codigo_solicitacao+'-'+nome+'.pdf');
-}
-
-function gerarPDFCotacao(){
-  if(!window._canhotoPay){ showToast('Nenhuma solicitação enviada.','error'); return; }
-  const doc = gerarPDFBase(window._canhotoPay, 'cotacao');
-  doc.save('COTACAO-'+window._canhotoPay.codigo_solicitacao+'.pdf');
-}
-
 function showToast(msg,type){
   const t=document.getElementById("toast");
   t.textContent=msg; t.className="toast show "+(type||"");
@@ -772,8 +638,7 @@ init();
     </div>
     <div class="canhoto-footer">
       <button class="btn-fechar" onclick="fecharCanhoto()">Fechar</button>
-      <button class="btn-pdf btn-espelho" onclick="gerarPDFEspelho()">⬇ Espelho Completo</button>
-      <button class="btn-pdf btn-cotacao" onclick="gerarPDFCotacao()">⬇ Para Cotação</button>
+      <button class="btn-imprimir" onclick="window.print()">⬇ Salvar PDF</button>
     </div>
   </div>
 </div>
