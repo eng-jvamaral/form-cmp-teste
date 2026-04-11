@@ -712,7 +712,7 @@ function gerarPDFBase(payload, tipo){
         const color = val==='Urgente'?[192,57,43]:val==='Alta'?[146,64,14]:[61,90,192];
         doc.setTextColor(...color);
         doc.setFontSize(8); doc.setFont('helvetica','bold');
-        doc.text(val, data.cell.x+data.cell.padding('left'), data.cell.y+data.cell.height/2+2.5);
+        doc.text(val, data.cell.x+data.cell.padding('left'), data.cell.y+data.cell.padding('top')+6);
         doc.setTextColor(26,18,16); doc.setFont('helvetica','normal');
       }
     },
