@@ -2,7 +2,7 @@
   "setores": [
     "Administrativo","Comercial","Compras","Engenharia","Financeiro",
     "Controle de Qualidade","Logística","PCM","Montagem","Usinagem",
-    "PCP","SGQ","RH/DP","TI"
+    "PCP","SGQ","RH/DP","TI","Infraestrutura"
   ],
 "centros_custo": [
   "01001 — DIRETORIA",
