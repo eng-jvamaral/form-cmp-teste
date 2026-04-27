@@ -169,9 +169,49 @@ body{font-family:"Segoe UI",system-ui,sans-serif;background:var(--bg);color:var(
 <body>
  
 <script>
-const WEBHOOK_URL = "https://hook.us2.make.com/giyntgx8pbjoowis13v8f961eufpy10i"; // Cole a URL do webhook do Make aqui
-const DADOS_URL   = "dados.json";
+const WEBHOOK_URL   = "https://hook.us2.make.com/giyntgx8pbjoowis13v8f961eufpy10i";
+const DADOS_URL     = "dados.json";
+
+// ── Cole aqui o link do OneDrive, SharePoint, Google Drive, Dropbox ou CSV público ──
+// Deixe como "" para usar o catálogo padrão do GitHub
+const CATALOGO_URL  = "https://docs.google.com/spreadsheets/d/154tkH4Sd2NzSs6V4O6qHjtaF3RhLtJp2E9j2eMD_eaM/export?format=csv&gid=0";
+
+function converterUrl(url) {
+  if (!url) return url;
+  url = url.trim();
+  if (url.includes("download=1")) return url;
+  // Google Sheets export direto — passar como está, sem conversão
+  if (url.includes("spreadsheets/d") && url.includes("export")) return url;
+  if (url.includes("1drv.ms") || url.includes("onedrive.live.com") || url.includes("sharepoint.com")) {
+    return url + (url.includes("?") ? "&" : "?") + "download=1";
+  }
+  if (url.includes("dropbox.com")) {
+    return url.replace("dl=0","dl=1").replace("?dl=0","?dl=1")
+              .replace("&dl=0","&dl=1").replace("www.dropbox.com","dl.dropboxusercontent.com");
+  }
+  return url;
+}
+
+async function carregarCatalogo(url) {
+  const urlFinal = converterUrl(url);
+  const r = await fetch(urlFinal + (urlFinal.includes("?") ? "&" : "?") + "_v=" + Date.now());
+  if (!r.ok) throw new Error("HTTP " + r.status);
+  const isExcel = url.toLowerCase().match(/\.xlsx?(\?|$)/);
+  if (isExcel) {
+    if (!window.XLSX) throw new Error("SheetJS não carregado.");
+    const buf = await r.arrayBuffer();
+    const wb = window.XLSX.read(buf, {type:"array"});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    return window.XLSX.utils.sheet_to_json(ws, {header:1}).flat().map(v=>String(v).trim()).filter(Boolean);
+  }
+  const texto = await r.text();
+  return texto.split('\n').map(l=>l.trim()).filter(Boolean);
+}
 </script>
+
+<!-- SheetJS para suporte a Excel (.xlsx) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
  
 <header class="site-header">
   <div class="header-inner">
@@ -289,10 +329,11 @@ async function init(){
   setDocDate();
   try{ const r=await fetch(DADOS_URL+"?v="+Date.now()); if(r.ok){ const d=await r.json(); appData={...appData,...d, compradora:d.compradora||appData.compradora}; } }catch(e){}
   try{
-    const r = await fetch("https://raw.githubusercontent.com/eng-jvamaral/form-cmp-teste/refs/heads/main/base-itens-perpec.csv");
-    if(r.ok){
-      const texto = await r.text();
-      appData.itens_catalogo = texto.split('\n').map(l => l.trim()).filter(Boolean);
+    if (CATALOGO_URL) {
+      appData.itens_catalogo = await carregarCatalogo(CATALOGO_URL);
+    } else {
+      const r = await fetch("https://raw.githubusercontent.com/eng-jvamaral/form-cmp-teste/refs/heads/main/base-itens-perpec.csv");
+      if(r.ok){ const t=await r.text(); appData.itens_catalogo=t.split('\n').map(l=>l.trim()).filter(Boolean); }
     }
   }catch(e){}
   atualizarCodigo();
